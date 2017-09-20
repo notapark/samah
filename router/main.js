@@ -5,13 +5,13 @@ module.exports = function(app, fs)
 
 
         res.render('index', {
-            title: "MY HOMEPAGE",
+            title: "삼아인쇄",
             length: 5,
             name: sess.name,
             username: sess.username
         })
     });
-
+    
     app.get('/list', function (req, res) {
        fs.readFile( __dirname + "/../data/" + "user.json", 'utf8', function (err, data) {
            console.log( data );
