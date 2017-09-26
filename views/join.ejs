@@ -21,8 +21,12 @@
     </div>
 
     <div class="col-sm-8 text-left" id="#home">
-      <h1>로그인</h1>
-      <form id="loginform" action="/dologin" method="post">
+      <h1>회원가입</h1>
+      <form id="joinform" action="/dojoin" method="post">
+        <div class="input-group">
+          <span class="input-group-addon"><i class="glyphicon glyphicon-user"></i></span>
+          <input id="username" type="text" class="form-control" name="username" placeholder="성명">
+        </div>
         <div class="input-group">
           <span class="input-group-addon"><i class="glyphicon glyphicon-user"></i></span>
           <input id="userid" type="text" class="form-control" name="userid" placeholder="아이디">
@@ -32,9 +36,7 @@
           <input id="password" type="password" class="form-control" name="password" placeholder="비밀번호">
         </div>
       </form>
-      <button type="button" class="btn" id="btnlogin">로그인</button>
-      <button type="button" class="btn" id="btnjoin">회원가입</button>
-      <button type="button" class="btn" id="btnfindpassword">비번찾기</button>
+      <button type="button" class="btn" id="btnjoin">가입</button>
     </div>
 
     <div class="col-sm-2 sidenav">
@@ -51,13 +53,10 @@
 <%- include footer.ejs %>
 
 <script>
-  $("#btnlogin").click(function(){
-    $("#loginform").submit();
+  $("#btnjoin").click(function(){
+    $("#joinform").submit();
   });
 
-  $("#btnjoin").click(function(){
-    document.location = "/join";
-  });
 
 </script>
 

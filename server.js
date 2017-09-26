@@ -13,7 +13,7 @@ app.engine('html', require('ejs').renderFile);
 
 
 var server = app.listen(8000, function(){
- console.log("Express server has started on port 3000")
+ console.log("Express server has started on port 8000")
 });
 
 app.use(express.static('public'));

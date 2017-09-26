@@ -2,16 +2,20 @@ module.exports = function(app, fs)
 {
     app.get('/',function(req,res){
         var sess = req.session;
-
-
         res.render('index', {
-            title: "MY HOMEPAGE",
-            length: 5,
-            name: sess.name,
-            username: sess.username
+            name: sess.name
         })
     });
 
+    app.get('/company',function(req,res){
+        var sess = req.session;
+        res.render('company', {
+            name: sess.name
+        })
+    });
+
+
+/*
     app.get('/list', function (req, res) {
        fs.readFile( __dirname + "/../data/" + "user.json", 'utf8', function (err, data) {
            console.log( data );
@@ -157,18 +161,5 @@ module.exports = function(app, fs)
         })
     });
 
-    app.get('/logout', function(req, res){
-        sess = req.session;
-        if(sess.username){
-            req.session.destroy(function(err){
-                if(err){
-                    console.log(err);
-                }else{
-                    res.redirect('/');
-                }
-            })
-        }else{
-            res.redirect('/');
-        }
-    })
+    */
 }
