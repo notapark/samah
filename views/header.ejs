@@ -6,15 +6,15 @@
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </button>
-      <a class="navbar-brand" href="#company"><img src="/imgs/logo.jpg" class="s2" width="160" height="51px"></a>
+      <a class="navbar-brand" href="/"><img src="/imgs/logo.jpg" class="s2" width="160" height="51px"></a>
     </div>
     <div class="collapse navbar-collapse" id="myNavbar">
       <ul class="nav navbar-nav">
-        <li><a href="#home">홈</a></li>
-        <li><a href="#company">회사소개</a></li>
-        <li><a href="#bbsmain">부과내역서인쇄의뢰</a></li>
-        <li><a href="#bbsetc">기타인쇄의뢰</a></li>
-        <li><a href="#contact">연락처</a></li>
+        <li><a href="/home">홈</a></li>
+        <li><a href="/company">회사소개</a></li>
+        <li><a href="/bbs/main/list">부과내역서인쇄의뢰</a></li>
+        <li><a href="/bbs/etc/list">기타인쇄의뢰</a></li>
+        <li><a href="/contact">연락처</a></li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
       <%
@@ -40,14 +40,9 @@
   $(document).ready(function(){
     // Add smooth scrolling to all links in navbar + footer link
     $(".navbar a, footer a[href='#myPage']").on('click', function(event) {
-      /*
-      $("company").hide();
-      $("home").show();
-      */
       var hash = this.hash;
-      alert("111111 : " + hash);
-
-      $(hash).toggle();
+      $(".menu").hide();
+      $(hash).show();
 
 
 /*

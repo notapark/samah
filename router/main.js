@@ -3,13 +3,32 @@ module.exports = function(app, fs)
     app.get('/',function(req,res){
         var sess = req.session;
         res.render('index', {
-            name: sess.name
+            name: sess.name,
+            page: 'content/home.ejs'
         })
     });
 
     app.get('/company',function(req,res){
         var sess = req.session;
-        res.render('company', {
+        res.render('index', {
+            page: 'content/company.ejs',
+            name: sess.name
+        })
+    });
+
+    app.get('/home',function(req,res){
+        var sess = req.session;
+        res.render('index', {
+            page: 'content/home.ejs',
+            name: sess.name
+        })
+    });
+
+
+    app.get('/contact',function(req,res){
+        var sess = req.session;
+        res.render('index', {
+            page: 'content/contact.ejs',
             name: sess.name
         })
     });

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="EUC-KR">
+<head>
+  <title>삼아인쇄기획 홈페이지</title>
+  <meta charset="EUC-KR">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+  <link rel="stylesheet" type="text/css" href="/css/style.css">
+</head>
+<body>
+<%- include ../header.ejs %>
+
+<div class="container-fluid text-center">
+  <div class="row content">
+    <div class="col-sm-2 sidenav">
+      <p><a href="#">링크</a></p>
+      <p><a href="#">링크</a></p>
+      <p><a href="#">링크</a></p>
+    </div>
+
+    <div class="col-sm-8 text-left"  >
+
+      <h1>부과내역서인쇄의뢰</h1>
+      <div class="table-striped" >
+        <table class="table table-bordered">
+          <thead>
+            <tr>
+              <td>번호</td>
+              <td>제목</td>
+              <td>작성자</td>
+              <td>작성일</td>
+              <td>상태</td>
+            </tr>
+          </thead>
+          <tbody>
+            <%
+            rs.forEach(function(item, index){
+            %>
+            <tr id=<%=item.bbsno%>>
+              <td><%=item.bbsno%></td>
+              <td><%=item.subject%></td>
+              <td><%=item.content%></td>
+              <td><%=item.regdate%></td>
+              <td><%=item.status%></td>
+            </tr>
+            <%
+            });
+            %>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <button type="button" class="btn" id="btnwrite">글쓰기</button>
+      </div>
+    </div>
+    <form id="viewform" action="/bbs/main/view" method="post">
+      <input type="hidden" id="bbsno">
+    </form>
+
+    <div class="col-sm-2 sidenav">
+      <div class="well">
+        <p>ADS</p>
+      </div>
+      <div class="well">
+        <p>ADS</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer class="container-fluid text-center">
+  <p>Footer Text</p>
+</footer>
+<script>
+  $("#btnwrite").click(function(){
+    document.location = "/bbs/main/write";
+  });
+
+  $("tbody tr").click(function(){
+    $("#bbsno").attr('value',this.id);
+    $("#viewform").submit();
+  });
+</script>
+
+</body>
+</html>

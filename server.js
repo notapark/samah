@@ -23,7 +23,8 @@ app.use(bodyParser.urlencoded());
 app.use(session({
  secret: '@#@$MYSIGN#@$#$',
  resave: false,
- saveUninitialized: true
+ saveUninitialized: true,
+ cookie:{maxAge:6000}
 }));
 
 var connection = mysql.createConnection({
@@ -37,3 +38,4 @@ var connection = mysql.createConnection({
 
 var router = require('./router/main')(app, fs);
 var router = require('./router/login')(app, fs, connection);
+var router = require('./router/bbs')(app, fs, connection);

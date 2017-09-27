@@ -10,7 +10,7 @@
   <link rel="stylesheet" type="text/css" href="/css/style.css">
 </head>
 <body>
-<%- include header.ejs %>
+<%- include ../header.ejs %>
 
 <div class="container-fluid text-center">
   <div class="row content">
@@ -21,7 +21,23 @@
     </div>
 
     <div class="col-sm-8 text-left"  >
-      <%- include(page)  %>
+
+      <h1>부과내역서인쇄의뢰</h1>
+      <div>
+        <form id="writeform" action="/bbs/main/dowrite" method="post">
+
+          <div class="input-group">
+            <input id="subject" type="text" class="form-control" name="subject" placeholder="제목">
+            <span class="input-group-addon"><i class="glyphicon glyphicon-lock"></i></span>
+            <input id="passwd" type="password" class="form-control" name="passwd" placeholder="비밀번호">
+          </div>
+          <div class="input-group">
+            <input id="content" type="textarea" class="form-control" name="content" placeholder="내용입력" >
+          </div>
+          <input type="submit" class="submit" id="btnwrite" value="저장">
+        </form>
+      </div>
+
 
     </div>
 
@@ -40,6 +56,16 @@
   <p>Footer Text</p>
 </footer>
 
+<script>
+  $("#writeform").submit(function(){
+    $('<input />').attr('type', 'hidden')
+        .attr('name', "wname")
+        .attr('id', "wname")
+        .attr('value',"aaaaaaa")
+        .appendTo('#writeform');
+    return true;
+  });
+</script>
 
 </body>
 </html>

@@ -42,7 +42,8 @@ module.exports = function(app, fs, connection)
         }else{
           sess.name = result[0].user_name;
           res.render('index',{
-            name: sess.name
+            name: sess.name,
+            page: 'content/home.ejs'
           })
         };
       })
