@@ -24,17 +24,18 @@
 
       <h1>부과내역서인쇄의뢰</h1>
       <div>
-        <form id="writeform" action="/bbs/main/dowrite" method="post">
-
+        <form id="updateform" action="/bbs/main/doupdate" method="post">
+          <input type="hidden" id="bbsno" name="bbsno" value=<%=rs[0].bbsno%>>
+          <input type="hidden" id="wname" name="wname" value=<%=rs[0].wname%>>
           <div class="input-group">
-            <input id="subject" type="text" class="form-control" name="subject" placeholder="제목">
+            <input id="subject" type="text" class="form-control" name="subject" placeholder="제목" value=<%=rs[0].subject%>>
             <span class="input-group-addon"><i class="glyphicon glyphicon-lock"></i></span>
             <input id="passwd" type="password" class="form-control" name="passwd" placeholder="비밀번호">
           </div>
           <div class="input-group">
-            <input id="content" type="textarea" class="form-control" name="content" placeholder="내용입력" >
+            <input id="content" type="textarea" class="form-control" name="content" placeholder="내용입력" value=<%=rs[0].content%>>
           </div>
-          <input type="submit" class="submit" id="btnwrite" value="저장">
+          <input type="submit" class="submit" id="btnupdate" value="수정">
         </form>
       </div>
 
@@ -57,12 +58,12 @@
 </footer>
 
 <script>
-  $("#writeform").submit(function(){
+  $("#btnupdate").submit(function(){
     $('<input />').attr('type', 'hidden')
         .attr('name', "wname")
         .attr('id', "wname")
         .attr('value',"aaaaaaa")
-        .appendTo('#writeform');
+        .appendTo('#updateform');
     return true;
   });
 </script>

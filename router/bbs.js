@@ -24,11 +24,11 @@ module.exports = function(app, fs, connection)
 
   app.post('/bbs/main/view',function(req,res){
     var sess = req.session;
-    var bbsno = req.params.bbsno;
-    console.log("bbsno : " + bbsno);
-    var query = connection.query('select * from tb_bbs ',[bbsno],function(err,result){
+    var bbsno = req.body.bbsno;
+    var query = connection.query('select * from tb_bbs where bbsno =?',[bbsno],function(err,result){
       res.render('bbs/mainview',{
-        name: sess.name
+        name: sess.name,
+        rs: result
       });
     });
   });
@@ -49,6 +49,34 @@ module.exports = function(app, fs, connection)
         console.error(err);
       }else{
         res.redirect('/bbs/main/list');
+      };
+    });
+  });
+
+  app.post('/bbs/main/doupdate',function(req,res){
+    var sess = req.session;
+    var sql = "";
+    var ip = req.headers['x-forwarded-for'] ||
+     req.connection.remoteAddress ||
+     req.socket.remoteAddress ||
+     req.connection.socket.remoteAddress;
+    var param = {'subject':req.body.subject
+                , 'content':req.body.content
+                , 'wname':req.body.wname
+                , 'passwd':req.body.passwd
+                , 'ip': ip};
+
+             console.log(ip);
+    sql += "update tb_bbs set ?";
+    sql += " where bbsno = ?";
+    var query = connection.query(sql,[param, req.body.bbsno],function(err,result){
+      if (err) {
+        console.error(err);
+      }else{
+        res.render('bbs/main/view',{
+          name: sess.name,
+          bbsno: req.body.bbsno
+        });
       };
     });
   });
