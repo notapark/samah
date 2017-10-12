@@ -3,7 +3,9 @@ module.exports = function(app, fs, connection)
 
   app.get('/bbs/main/list',function(req,res){
     var sess = req.session;
-    var query = connection.query('select * from tb_bbs ',function(err,result){
+    var sql = '';
+    sql += 'select bbsno, subject, wname, date_format(regdate,"%Y년%m월%d일") as regdate from tb_bbs where type="main" order by bbsno desc;';
+    var query = connection.query(sql,function(err,result){
       if (err) {
         console.error(err);
       }else{
@@ -42,9 +44,9 @@ module.exports = function(app, fs, connection)
              req.connection.socket.remoteAddress;
 
              console.log(ip);
-    sql += "insert into tb_bbs (subject, content, wname, passwd, ip, grpno,  regdate)";
-    sql += " values(?,?,?,?,?,0,now())";
-    var query = connection.query(sql,[req.body.subject, req.body.content, req.body.wname, req.body.passwd, ip],function(err,result){
+    sql += "insert into tb_bbs (subject, content, wname, passwd, ip, grpno,  regdate, type)";
+    sql += " values(?,?,?,?,?,0,now(),?)";
+    var query = connection.query(sql,[req.body.subject, req.body.content, req.body.wname, req.body.passwd, ip, req.body.type],function(err,result){
       if (err) {
         console.error(err);
       }else{

@@ -1,5 +1,72 @@
 <div class="menu" id="home" >
-  <h1>Welcome</h1>
-  <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
-  <hr>
+  <div class="col-sm-6 text-left">
+    <h1>부과내역서인쇄의뢰</h1>
+    <div class="table-striped" >
+      <table class="table table-bordered">
+        <thead>
+          <tr>
+            <td>번호</td>
+            <td>제목</td>
+            <td>작성자</td>
+            <td>작성일</td>
+            <td>상태</td>
+          </tr>
+        </thead>
+        <tbody>
+          <%
+          rsMain.forEach(function(item, index){
+          %>
+          <tr id=<%=item.bbsno%>>
+            <td><%=item.bbsno%></td>
+            <td><%=item.subject%></td>
+            <td><%=item.wname%></td>
+            <td><%=item.regdate%></td>
+            <td><%=item.status%></td>
+          </tr>
+          <%
+          });
+          %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="col-sm-6 text-left">
+    <h1>인쇄의뢰</h1>
+    <div class="table-striped" >
+      <table class="table table-bordered">
+        <thead>
+          <tr>
+            <td>번호</td>
+            <td>제목</td>
+            <td>작성자</td>
+            <td>작성일</td>
+            <td>상태</td>
+          </tr>
+        </thead>
+        <tbody>
+          <%
+          rsEtc.forEach(function(item, index){
+          %>
+          <tr id=<%=item.bbsno%>>
+            <td><%=item.bbsno%></td>
+            <td><%=item.subject%></td>
+            <td><%=item.wname%></td>
+            <td><%=item.regdate%></td>
+            <td><%=item.status%></td>
+          </tr>
+          <%
+          });
+          %>
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
+
+<script>
+
+  $(document).ready(function(){
+    $('#home').attr('class','active');
+  });
+
+</script>

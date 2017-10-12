@@ -1,26 +1,50 @@
-module.exports = function(app, fs)
+module.exports = function(app, fs, connection)
 {
     app.get('/',function(req,res){
         var sess = req.session;
-        res.render('index', {
-            name: sess.name,
-            page: 'content/home.ejs'
-        })
+        var sql = '';
+        sql += 'select bbsno, subject, wname, date_format(regdate,"%Y년%m월%d일") as regdate from tb_bbs where type="main";';
+        sql += 'select bbsno, subject, wname, date_format(regdate,"%Y년%m월%d일") as regdate  from tb_bbs where type="etc"  ;';
+        var query = connection.query(sql,function(err,result){
+          if (err) {
+            console.error(err);
+          }else{
+            res.render('index',{
+              page: 'content/home.ejs',
+              name: sess.name,
+              rsMain: result[0],
+              rsEtc: result[1]
+            })
+          };
+        });
+    });
+
+
+    app.get('/home',function(req,res){
+        var sess = req.session;
+        var sql = '';
+        sql += 'select bbsno, subject, wname, date_format(regdate,"%Y년%m월%d일") as regdate from tb_bbs where type="main";';
+        sql += 'select bbsno, subject, wname, date_format(regdate,"%Y년%m월%d일") as regdate  from tb_bbs where type="etc"  ;';
+        var query = connection.query(sql,function(err,result){
+          if (err) {
+            console.error(err);
+          }else{
+            res.render('index',{
+              page: 'content/home.ejs',
+              name: sess.name,
+              rsMain: result[0],
+              rsEtc: result[1]
+            })
+          };
+        });
     });
 
     app.get('/company',function(req,res){
         var sess = req.session;
         res.render('index', {
             page: 'content/company.ejs',
-            name: sess.name
-        })
-    });
-
-    app.get('/home',function(req,res){
-        var sess = req.session;
-        res.render('index', {
-            page: 'content/home.ejs',
-            name: sess.name
+            name: sess.name,
+            aaa: 'aaa'
         })
     });
 

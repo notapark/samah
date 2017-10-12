@@ -22,9 +22,9 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded());
 app.use(session({
  secret: '@#@$MYSIGN#@$#$',
- resave: false,
+ resave: true,
  saveUninitialized: true,
- cookie:{maxAge:6000}
+ cookie:{maxAge:360000}
 }));
 
 var connection = mysql.createConnection({
@@ -32,10 +32,18 @@ var connection = mysql.createConnection({
     port : 3306,
     user : 'root',
     password : 'jong0914',
-    database:'samah'
+    database:'samah',
+    multipleStatements: true
 });
 
+connection.connect(function(err) {
+  if (err) {
+      console.error('mysql connection error');
+      console.error(err);
+      throw err;
+  }
+});
 
-var router = require('./router/main')(app, fs);
+var router = require('./router/main')(app, fs, connection);
 var router = require('./router/login')(app, fs, connection);
 var router = require('./router/bbs')(app, fs, connection);

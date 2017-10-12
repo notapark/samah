@@ -1,16 +1,11 @@
 module.exports = function(app, fs, connection)
 {
-  connection.connect(function(err) {
-    if (err) {
-        console.error('mysql connection error');
-        console.error(err);
-        throw err;
-    }
-  });
+
+
 
 
   app.get('/logout',function(req,res){
-      sess = req.session;
+    var sess = req.session;
       if(sess.name){
           req.session.destroy(function(err){
               if(err){
@@ -25,13 +20,13 @@ module.exports = function(app, fs, connection)
   });
 
   app.get('/login',function(req,res){
-      var sess = req.session;
       res.render('login', {
         name: null
       })
   });
 
   app.post('/dologin',function(req,res){
+    console.log("dologin");
       var sess = req.session;
       var user = {'user_id':req.body.userid,
                   'password':req.body.password};
@@ -41,10 +36,7 @@ module.exports = function(app, fs, connection)
           console.error(err);
         }else{
           sess.name = result[0].user_name;
-          res.render('index',{
-            name: sess.name,
-            page: 'content/home.ejs'
-          })
+          res.redirect('/');
         };
       })
   });

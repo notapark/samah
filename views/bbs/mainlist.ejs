@@ -14,13 +14,8 @@
 
 <div class="container-fluid text-center">
   <div class="row content">
-    <div class="col-sm-2 sidenav">
-      <p><a href="#">링크</a></p>
-      <p><a href="#">링크</a></p>
-      <p><a href="#">링크</a></p>
-    </div>
 
-    <div class="col-sm-8 text-left"  >
+    <div class="col-sm-12 text-left"  >
 
       <h1>부과내역서인쇄의뢰</h1>
       <div class="table-striped" >
@@ -41,7 +36,7 @@
             <tr id=<%=item.bbsno%>>
               <td><%=item.bbsno%></td>
               <td><%=item.subject%></td>
-              <td><%=item.content%></td>
+              <td><%=item.wname%></td>
               <td><%=item.regdate%></td>
               <td><%=item.status%></td>
             </tr>
@@ -59,14 +54,6 @@
       <input type="hidden" id="bbsno" name="bbsno" >
     </form>
 
-    <div class="col-sm-2 sidenav">
-      <div class="well">
-        <p>ADS</p>
-      </div>
-      <div class="well">
-        <p>ADS</p>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -81,6 +68,10 @@
   $("tbody tr").click(function(){
     $("#bbsno").attr('value',this.id);
     $("#viewform").submit();
+  });
+
+  $(document).ready(function(){
+    $('#main').attr('class','active');
   });
 </script>
 
