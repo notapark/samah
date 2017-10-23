@@ -4,6 +4,8 @@ var bodyParser = require('body-parser');
 var session = require('express-session');
 var fs = require("fs")
 var mysql = require('mysql');
+var multer = require('multer');
+var upload = multer({dest:'uploads/tmp/'});
 
 
 
@@ -46,4 +48,4 @@ connection.connect(function(err) {
 
 var router = require('./router/main')(app, fs, connection);
 var router = require('./router/login')(app, fs, connection);
-var router = require('./router/bbs')(app, fs, connection);
+var router = require('./router/bbs')(app, fs, connection, upload);

@@ -40,3 +40,31 @@
       padding-top: 0px;
       padding-left: 0px;
     }
+
+    thead tr td {
+      align: center;
+      background-color: #a3a3a3;
+    }
+
+    tbody{
+      cursor: pointer;
+    }
+
+    tbody tr td.active{
+      background-color: #a3a3a3;
+    }
+
+    .status-0010{
+      background-color: yellow;
+    }
+
+    .status-0020{
+      background-color: red;
+    }
+
+    .status-0030{
+      background-color: blue;
+    }
+
+
+    table.ui-datepicker-calendar { display:none; }

@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+/**
+ *  사업장 조회팝업
+ *
+ *  @author     기은정(eunjung.ki@vroi.net)
+ *  @version    13.07.2009
+ *  @since      Flex 3.3.0 build 4589
+ */  
+--> 
+<core:H5View 
+    xmlns:mx="http://www.adobe.com/2006/mxml"
+    xmlns:h5="http://www.h5.com/component"
+    xmlns:core="http://www.h5.com/core"
+    creationComplete="creationCompleteHandler()"
+    width="100%" height="100%" styleName="panel1"
+    >
+    
+    <mx:Script>
+    <![CDATA[
+    //--------------------------------------------------------------------------
+    //
+    //  Imports
+    // 
+    //--------------------------------------------------------------------------
+    import h5.ria.flex.frame.events.H5PopupEvent;
+    import h5.ria.flex.component.utils.StringUtil;
+    import h5.ria.flex.component.controls.Alert;
+    import h5.ria.flex.component.asset.AssetImage;
+    import h5.ria.flex.core.dataset.DefaultDataSet;
+    import h5.ria.flex.frame.events.ServiceDelegatorEvent;
+    import h5.ria.flex.core.dataset.IRecord;
+    import h5.ria.flex.core.dataset.IDataSet;
+    import h5.ria.flex.core.dataset.DefaultDataSetList;
+    import h5.ria.flex.core.dataset.IDataSetList;
+    
+    import mx.collections.ArrayCollection;
+    
+    //--------------------------------------------------------------------------
+    //
+    //  Variable
+    // 
+    //--------------------------------------------------------------------------   
+    /**
+     *  @private
+     *  main ArrayCollection
+     */  
+    [Bindable]
+    private var dsSearchAC:ArrayCollection = new ArrayCollection();
+    
+    /**
+     *  @private
+     *  사업장타입  2=인사, 3=근태
+     */ 
+    private var bizTypeCode:String;
+    
+    //--------------------------------------------------------------------------------
+    //
+    // Overridden Methods
+    //
+    //--------------------------------------------------------------------------------
+    /**
+     *  @private
+     *  creationCompleteEventHandler
+     */ 
+    protected function creationCompleteHandler():void
+    {
+        var ds:IDataSet = initData.getDataSet("ds_return");
+        
+        if(ds != null){
+            dsSearchAC = ds.getRecords();
+        }
+
+        var paramDs:IDataSet = initData.getDataSet("popup_data");
+        
+        if(paramDs != null)
+        {
+            defaultSearchText.text = paramDs.getRecordAt(0).getValueByName("searchValue").replace(new RegExp('%','g'),'');
+            bizTypeCode = paramDs.getRecordAt(0).getValueByName("biz_type_cd");
+        }
+    }
+    
+    
+    /**
+     *  @override
+     *  WebService호출
+     *  @param   actionType   호출종류
+     *  @param   value        인자값
+     */
+    override protected function doAction(actionType:String,value:Object):void
+    {
+        // 서버측으로 전달되어질 데이터 구조
+        var sendDataList:IDataSetList = new DefaultDataSetList();
+        var ds_Condition:IDataSet;
+        var record:IRecord;
+
+        switch(actionType)
+        {
+            case "search":
+                 
+                ds_Condition = new DefaultDataSet("ds_C_Data");
+                ds_Condition.addColumn("biz_type_cd");
+                ds_Condition.addColumn("company_cd");
+                ds_Condition.addColumn("searchValue");
+                
+                record = ds_Condition.newRecord();
+                record.setValueOf("biz_type_cd", bizTypeCode);
+                record.setValueOf("searchValue", '%' + defaultSearchText.text + '%' );
+                record.setValueOf("company_cd", this.getCompanyCode());
+
+                sendDataList.addDataSet("ds_C_Data", ds_Condition);
+                this.executeTransaction("DTM_070_R02", sendDataList, actionType);
+                
+                break;
+        }
+    } 
+    
+    //--------------------------------------------------------------------------
+    //
+    //  FaultEvent
+    //
+    //--------------------------------------------------------------------------
+    /**
+     *  @private
+     *  Fault
+     */
+    override protected function fault(event:ServiceDelegatorEvent):void
+    {
+        var eType:String = event.actionType;
+        var target:String = "[조회]";
+        
+        if (!StringUtil.emptyOrNull(event.result.faultCode))
+        {
+            Alert.info(target + getTerms(event.result.faultCode));
+        }
+        else
+        {
+            Alert.info(target + getTerms('ALERT_WORK_FAIL1'));
+        }
+        
+    }
+    
+    //--------------------------------------------------------------------------
+    //
+    //  ResultEvent
+    //
+    //--------------------------------------------------------------------------
+    /**
+     *  @private
+     *  Result result
+     */
+    override protected function result(event:ServiceDelegatorEvent):void
+    {
+        var result:IDataSetList = event.result as IDataSetList;
+        var eType:String = event.actionType;
+        
+        switch(eType)
+        {
+            case "search" :   
+            
+                dsSearchAC = result.getDataSet("ds_D_Data").getRecords();
+                
+                if (!IDataSet(result.getDataSet("ds_D_Data")).getRecords().length
+                    || !IDataSet(result.getDataSet("ds_D_Data")))
+                {
+                    Alert.info(getTerms('ALERT_RETIEVE_NULL1'));
+                }
+                
+                break;
+                
+        }
+    } 
+    
+    //--------------------------------------------------------------------------
+    //
+    //  Method
+    //
+    //--------------------------------------------------------------------------
+    /**
+     *  @override
+     *
+     *  확인버튼.
+     */
+    protected function confirm():void
+    {
+        if(adg.selectedItem == null)
+        {
+            Alert.info(getTerms('HRO_CHECK_MSG2'));
+            return;
+        }
+
+        this.dispatchEvent(new H5PopupEvent(H5PopupEvent.SEND_DATA,adg.selectedItem as IRecord));
+        this.dispatchEvent(new H5PopupEvent(H5PopupEvent.CLOSE_POPUP));
+    }
+    
+    
+    ]]>
+    </mx:Script>
+    
+    <h5:VBox width="100%" styleName="Box1" verticalGroupBoxMotion="true">
+        <!-- 조회영역 -->
+        <h5:HBox width="100%" styleName="SearchBox">
+            <h5:Grid width="100%" styleName="searchGrid">
+                <h5:GridRow width="100%" styleName="searchGridRow">
+                    <h5:GridItem styleName="searchGridItemLabel">
+                        <h5:Label text="사업장코드/명" labelCode="BIZ_CD1"/>
+                    </h5:GridItem>
+                    <h5:GridItem styleName="searchGridItem">
+                        <h5:TextInput id="defaultSearchText" enter="{doAction('search',null)}"/>                                        
+                    </h5:GridItem>
+                    
+                    <!--조회버튼-->
+                    <h5:GridItem width="100%" styleName="searchButtonGridItem">
+                        <h5:Button label="조회" labelCode="BTN_RETRIEVE1" click="{doAction('search',null)}" styleName="searchButton" />
+                        <h5:Button label="확인" labelCode="BTN_CONFIRM1" click="confirm()" styleName="okButton"/>
+                    </h5:GridItem>
+                </h5:GridRow>
+            </h5:Grid>
+        </h5:HBox>
+    </h5:VBox>
+     
+    <h5:VBox width="100%" height="100%" styleName="ContentsBox">
+        <h5:VBox width="100%" height="100%" styleName="groupBox" >
+            <h5:HBox width="100%" styleName="titleBox1">
+                <mx:Image source="{AssetImage.IMG_BUTTET1}"/>
+                <h5:Label text="사업장목록" labelCode="BIZ_LIST1" />
+            </h5:HBox>
+            
+            <h5:AdvancedDataGrid id="adg" width="100%" height="100%" dataProvider="{dsSearchAC}"
+                showDeleteColumn="false" showStatusColumn="false" 
+                doubleClickEnabled="true" doubleClick="confirm()" styleName="DataGridTypeA" >
+                <h5:columns>
+                    <h5:AdvancedDataGridColumn labelCode="ORM_BIZ_CD1" headerText="사업장코드" dataField="biz_cd" width="100" textAlign="right"/>
+                    <h5:AdvancedDataGridColumn labelCode="ORM_BIZ_NM1" headerText="사업장명" dataField="biz_nm" width="320" textAlign="left"/>
+                </h5:columns>
+            </h5:AdvancedDataGrid>
+        </h5:VBox>    
+    </h5:VBox>
+    
+</core:H5View>

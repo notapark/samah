@@ -1,0 +1,554 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+/**
+ *  근태관리 - 항목관리 TabNavigator
+ *
+ *  @author     기은정(eunjung.ki@vroi.net)
+ *  @version    20.07.2009
+ *  @since      Flex 3.3.0 build 4589
+ */
+-->
+<core:H5View 
+    xmlns:mx="http://www.adobe.com/2006/mxml"
+    xmlns:h5="http://www.h5.com/component"
+    xmlns:core="http://www.h5.com/core"
+    creationComplete="creationCompleteHandler()"
+    codeArray="['DTM_ENVIRONMENT_ITEM_CD','DTM_EMP_KIND_CD']"
+    width="500" height="300" styleName="panel1" 
+    >
+    
+    <mx:Script>
+    <![CDATA[
+    //--------------------------------------------------------------------------
+    //
+    //  Imports
+    // 
+    //--------------------------------------------------------------------------
+    import h5.ria.flex.component.vo.ICodeKindVO;
+    import h5.ria.flex.component.utils.ClassUtil;
+    import h5.ria.flex.component.utils.AlertUtil;
+    import h5.ria.flex.component.utils.StringUtil;
+    import h5.ria.flex.component.asset.AssetImage;
+    import h5.ria.flex.core.dataset.DefaultDataSet;
+    import h5.ria.flex.core.dataset.IRecord;
+    import h5.ria.flex.core.dataset.IDataSet;
+    import h5.ria.flex.core.dataset.DefaultDataSetList;
+    import h5.ria.flex.core.dataset.IDataSetList;
+    import h5.ria.flex.frame.events.ServiceDelegatorEvent;
+    import h5.ria.flex.component.utils.DateUtil;
+    import h5.ria.flex.component.controls.Alert;
+        
+    import mx.events.AdvancedDataGridEvent;
+    import mx.events.ListEvent;
+    import mx.collections.ArrayCollection;
+    import mx.utils.ObjectUtil;    
+    
+    //--------------------------------------------------------------------------
+    //
+    //  Variable
+    //
+    //--------------------------------------------------------------------------
+    /**
+     *  @private
+     *  버튼 제어 
+     */
+    [Bindable]
+    private var modifyButtonEnabled:Boolean = false;
+    
+    /** 
+     * @private
+     * 상위 영역에서 받은 조회조건.
+     */          
+    private var _searchValue:Object;              
+    
+    public function set searchValue(value:Object):void
+    {
+        _searchValue = value;
+        
+    }
+    public function get searchValue():Object
+    {
+        return _searchValue;    
+    }
+    
+    /** 
+     * @private
+     * main DataSet
+     */
+    public var dsSearch:IDataSet;
+    
+    /** 
+     * @private
+     * sub DataSet
+     */
+    private var dsSubData:IDataSet;
+    
+    /** 
+     * @private
+     * 조회조건
+     */ 
+    private var mainSearchValue:Object;
+    
+    /** 
+     * @private
+     * 신규저장시 임의의 PK값
+     */ 
+    private var max_pk_id:int = 0;
+    
+    /**
+     *  @private
+     *  신규입력시 frm_unit_basic_mgr_id; 
+     */
+    private var unitBasic:String;
+    
+    /**
+     *  @private
+     *  DataGrid 선택 index 
+     */
+    private var selIndex:int = 0;
+    
+    private var voEnvironment:ICodeKindVO;
+    
+    private var rowIndex:Number;
+    
+    //--------------------------------------------------------------------------
+    //
+    //  initialize
+    //
+    //--------------------------------------------------------------------------
+    /**
+     *  @private
+     *  creationCompleteEventHandler
+     */
+    private function creationCompleteHandler():void
+    { 
+        
+    }
+    
+    //--------------------------------------------------------------------------
+    //
+    //  Override Methods
+    //
+    //--------------------------------------------------------------------------
+    /**
+     *  @override
+     *  코드 조회 완료후 이벤트
+     */
+    override protected function afterCreation(event:Event):void
+    {
+        var voEmpKindCode:ICodeKindVO = ClassUtil.codeKindVOInstace(); 
+        voEmpKindCode.dataProvider = this.getCodesByKind('DTM_EMP_KIND_CD');
+        colEmpKindCode.codeKind = voEmpKindCode;
+        
+        var voSearchEmpKindCode:ICodeKindVO = ClassUtil.codeKindVOInstace(); 
+        voSearchEmpKindCode.addComboTypeFirstItem.cd_nm = '전체';
+        voSearchEmpKindCode.addComboTypeFirstItem.cd = '%';
+        voSearchEmpKindCode.dataProvider = this.getCodesByKind('DTM_EMP_KIND_CD');
+        emp_kind_cd.codeKind = voSearchEmpKindCode;
+        
+        voEnvironment = ClassUtil.codeKindVOInstace(); 
+        voEnvironment.dataProvider = this.getCodesByKind('DTM_ENVIRONMENT_ITEM_CD');
+        colEnvironment.codeKind = voEnvironment;
+    }
+    
+    /**
+     *  @override
+     *  WebService호출
+     *  @param   actionType   호출종류
+     *  @param   value        인자값
+     */ 
+    override protected function doAction(actionType:String, value:Object):void
+    {  
+        // 서버측으로 전달되어질 데이터 구조
+        var sendDataList:IDataSetList = new DefaultDataSetList();
+        var ds_Condition:IDataSet;
+        var record:IRecord;
+         
+        switch (actionType)
+        {
+            case "search": // 조회
+            
+                ds_Condition = new DefaultDataSet("ds_C_Data");
+                ds_Condition.addColumn("company_cd");           
+                ds_Condition.addColumn("base_ymd");           
+                ds_Condition.addColumn("emp_kind_cd");           
+                ds_Condition.addColumn("biz_cd");         
+                
+                record = ds_Condition.newRecord();
+                record.setValueOf("company_cd",value.company_cd);   
+                record.setValueOf("emp_kind_cd",value.emp_kind_cd);   
+                record.setValueOf("base_ymd",value.base_ymd);   
+                record.setValueOf("biz_cd",value.biz_cd);   
+                
+                var ds_Condition2:IDataSet = new DefaultDataSet("ds_C_Data1");
+                ds_Condition2.addColumn("company_cd");   
+                
+                record = ds_Condition2.newRecord();
+                record.setValueOf("company_cd",value.company_cd);   
+               
+                sendDataList.addDataSet("ds_C_Data",ds_Condition);
+                sendDataList.addDataSet("ds_C_Data1",ds_Condition2);
+                
+                this.executeTransaction("DTM_010_R09", sendDataList, actionType);
+                
+                break;
+            
+            case "new":             
+            
+                record = dsSearch.newRecord();
+                record.setValueOf("sta_ymd", DateUtil.convertToDateString(new Date()) );
+                record.setValueOf("end_ymd", '2999.12.31');
+                record.setValueOf("etc_cd1", mainSearchValue.biz_cd);
+                record.setValueOf("company_cd", mainSearchValue.company_cd);
+                record.setValueOf("frm_unit_basic_mgr_id", unitBasic);
+                record.setValueOf("frm_unit_basic_his_id", "frm_unit_basic_his_id_" + max_pk_id.toString());
+                
+                max_pk_id ++;
+                
+                adg.updateVerticalScrollPostion();
+                
+                break;   
+            
+            case "save":            
+            
+                if (adg.validateAll())
+                {
+                    ds_Condition = new DefaultDataSet("ds_D_Data");
+                    dsSearch.sendOnlyDirtyRecord(true);
+                    sendDataList.addDataSet("ds_D_Data",dsSearch);
+                    
+                    this.executeTransaction("DTM_010_S10", sendDataList, actionType);
+                }
+                
+                break;
+                
+        }
+    }
+    
+    
+    
+    //--------------------------------------------------------------------------
+    //
+    //  ResultEvent
+    //
+    //--------------------------------------------------------------------------
+    /**
+     *  @private
+     *  평가정의 조회 Result result
+     */
+    override protected function result(event:ServiceDelegatorEvent):void
+    {
+        var result:IDataSetList = event.result as IDataSetList;
+        var eType:String = event.actionType;
+        
+        switch(eType){
+            
+            case "search" :     // 조회 후 처리
+            
+                dsSearch = result.getDataSet("ds_D_Data");
+                
+                adg.dataProvider = dsSearch.getRecords();
+                modifyButtonEnabled = true;
+                
+                if (!IDataSet(result.getDataSet("ds_D_Data")).getRecords().length
+                    || !IDataSet(result.getDataSet("ds_D_Data")))
+                {
+                    Alert.info("[항목관리] " + getTerms('ALERT_RETIEVE_NULL1'));
+                }
+                else
+                {
+                    adg.selectedIndex = selIndex;
+                } 
+                
+                if (!IDataSet(result.getDataSet("ds_D_Data1")).getRecords().length
+                    || !IDataSet(result.getDataSet("ds_D_Data1")))
+                {
+                   
+                }
+                else
+                {
+                    unitBasic = result.getDataSet("ds_D_Data1").getRecordAt(0).getValueByName('frm_unit_basic_mgr_id');
+                }
+                
+                break; 
+            
+            case "save" :
+            
+                selIndex = adg.selectedIndex;
+                Alert.info(getTerms('ALERT_SAVE_OK1'), saveCompleteHandler);
+                
+                break;
+                
+        }
+        
+    }
+    
+    //--------------------------------------------------------------------------
+    //
+    //  FaultEvent
+    //
+    //--------------------------------------------------------------------------
+    /**
+     *  @private
+     *  Fault
+     */
+    override protected function fault(event:ServiceDelegatorEvent):void
+    {
+        var eType:String = event.actionType;
+        var target:String; 
+        
+        switch(eType)
+        {
+            case "search" :
+                
+                target = "[조회]";
+                break;
+                
+            case "save" :
+            
+                target = "[저장]";
+                break;
+        }
+        
+        if (!StringUtil.emptyOrNull(event.result.faultCode))
+        {
+            Alert.error(target + getTerms(event.result.faultCode));
+        }
+        else
+        {
+            Alert.error(target + getTerms('ALERT_WORK_FAIL1'));
+        }
+    }
+    
+    //--------------------------------------------------------------------------
+    //
+    //  Event Handlers
+    //
+    //--------------------------------------------------------------------------
+    /**
+     *  @private
+     * 
+     *  AdvancedDataGrid ItemEditEndEvent
+     */
+    private function advancedDataGridItemEditEndEventHandler(event:AdvancedDataGridEvent):void
+    {
+        if (event.columnIndex == 4)
+        {
+            rowIndex = event.rowIndex;
+            callLater(checkEtcCode);
+        }
+    }
+    
+    /**
+     *  @private
+     * 
+     *  조회 시점에 저장되지 않는 데이터가 존재할경우 AlertHandler
+     */
+    private function alertHandler(event:Object):void
+    {
+        // YES
+        if(event.detail == Alert.YES)
+        {
+            selIndex = 0;
+            setSearchValue();
+            doAction("search", mainSearchValue);
+        }
+    }
+    
+    /**
+     *  @private
+     * 
+     *  저장확인  AlertHandler
+     */
+    private function saveAlertHandler(event:Object):void
+    {
+        if(event.detail == Alert.YES)
+        {
+            doAction("save", null);
+        }
+    }
+    
+    /**
+     *  @private
+     * 
+     *  저장완료 AlertHandler
+     */
+    private function saveCompleteHandler(event:Object):void
+    {
+        doAction("search", mainSearchValue);
+    }
+    
+    //--------------------------------------------------------------------------
+    //
+    //  Methods
+    //
+    //--------------------------------------------------------------------------
+    /**
+     *  @private
+     *  초기화 (외부에서 접근가능)
+     */
+    public function outerReset():void
+    {
+        adg.dataProvider = null;
+        modifyButtonEnabled = false;
+    }
+    
+    /**
+     *  @private
+     *  박스 활설/비활성화 (외부에서 접근가능)
+     */
+    public function outerBoxEnable(value:Boolean):void
+    {
+        this.enabled = value;
+    }
+    
+    /**
+     *  @private
+     *  근태항목 상세설명
+     */
+    private function checkEtcCode():void
+    {
+        var columnKindCode:String = dsSearch.getRecordAt(rowIndex).getValueByName('etc_cd3');
+        
+        for each (var temp:Object in voEnvironment.dataProvider)
+        {
+            if (columnKindCode == temp.cd)
+            {
+                dsSearch.getRecordAt(rowIndex).setValueOf('note', temp.etc_cd1);
+            }
+        }
+            
+        dsSearch.getRecords().itemUpdated(dsSearch.getRecordAt(rowIndex));
+        
+    }
+    
+    /**
+     *  @private
+     * 
+     *  조회 전 수정데이터 확인.
+     */
+    private function beforeSearch():void
+    {
+        if (dsSearch)
+        {
+            if (dsSearch.checkDirty())
+            {
+                Alert.confirm('[항목관리]' + getTerms('CONFIRM_WORK_CONTINUE1'), alertHandler);
+                return;
+            }
+        }
+        selIndex = 0;
+        setSearchValue();
+        doAction("search", mainSearchValue);            
+        
+    }
+    
+    /**
+     *  @private
+     * 
+     *  저장 전  확인.
+     */
+    private function beforeSave():void
+    {
+        if (!dsSearch.checkDirty())
+        {
+            Alert.error(getTerms("ALERT_NO_SAVE_DATA1"));
+            return;
+        }
+                    
+        Alert.confirm(getTerms('CONFIRM_SAVE1'), saveAlertHandler);
+    }
+    
+    /**
+     *  @private
+     * 
+     *  조회조건 설정
+     */
+    private function setSearchValue():void
+    {
+        mainSearchValue = new Object();
+        mainSearchValue.company_cd  = getCompanyCode();
+        mainSearchValue.biz_cd      = searchValue.biz_cd;
+        mainSearchValue.base_ymd    = base_ymd.startDate;
+        mainSearchValue.emp_kind_cd = emp_kind_cd.selectedItem.cd;
+        
+    }   
+    
+    ]]>
+    </mx:Script>
+    
+        
+    <!-- 조회영역 -->
+    <h5:VBox width="100%" verticalGroupBoxMotion="true" styleName="Box1">
+        <h5:HBox width="100%" styleName="SearchBox">
+            <h5:Grid width="100%" styleName="searchGrid">
+                <h5:GridRow width="100%" styleName="searchGridRow">
+                    <h5:GridItem styleName="searchGridItemLabel">
+                        <h5:Label text="기준일자" labelCode="BASE_YMD4" icon="requirement"/>
+                    </h5:GridItem>
+                    <h5:GridItem styleName="searchGridItem">
+                        <h5:Date2Date id="base_ymd" showEndDate="false" />
+                    </h5:GridItem>
+                    <h5:GridItem styleName="searchGridItemLabel">
+                        <h5:Label text="직원구분" labelCode="EMP_KIND_CD3" />
+                    </h5:GridItem>
+                    <h5:GridItem styleName="searchGridItem">
+                        <h5:ComboBox id="emp_kind_cd" labelField="cd_nm" styleName="comboBox1" />
+                    </h5:GridItem>
+                    
+                    <!--조회버튼-->
+                    <h5:GridItem width="100%" styleName="searchButtonGridItem">
+                        <h5:Button label="조회" labelCode="BTN_RETRIEVE1" click="{beforeSearch()}" styleName="searchButton" />
+                    </h5:GridItem>
+                </h5:GridRow>
+            </h5:Grid>
+        </h5:HBox>
+    </h5:VBox>
+     
+    <h5:VBox width="100%" height="100%" styleName="groupBox" >
+        <h5:HBox width="100%" styleName="titleBox1">
+            <mx:Image source="{AssetImage.IMG_BUTTET1}"/>
+            <h5:Label text="항목관리" labelCode="ITEM_MNG1"/>
+            <mx:Spacer width="10" />
+            <h5:Label id="searchTitle" color="black"/>
+            <h5:Spacer width="100%" />
+            <h5:Button label="입력" labelCode="BTN_INSERT1" click="{doAction('new',null)}" enabled="{modifyButtonEnabled}" styleName="inputButton"/>
+            <h5:Button label="저장" labelCode="BTN_SAVE1" click="{beforeSave()}" enabled="{modifyButtonEnabled}" styleName="saveButton"/>
+        </h5:HBox>
+        <h5:AdvancedDataGrid id="adg" width="100%" height="100%" editable="true" 
+            itemEditEnd="advancedDataGridItemEditEndEventHandler(event)" styleName="DataGridTypeA">
+            <h5:columns>
+                <h5:AdvancedDataGridColumn labelCode="EMP_KIND_CD1" headerText="직원구분" dataField="etc_cd2" id="colEmpKindCode" width="100" isRequired="true" textAlign="left"/>
+                <h5:AdvancedDataGridColumn labelCode="DTM_ENVIRONMENT_ITEM1" headerText="근태항목" dataField="etc_cd3" width="160" id="colEnvironment" isRequired="true" textAlign="left"/>
+                <h5:AdvancedDataGridColumn labelCode="VALUE1" headerText="값" dataField="etc_cd4" isRequired="true" textAlign="left" width="80">
+                    <h5:itemEditor>
+                        <mx:Component>
+                            <h5:TextInputRenderer maxBytes="30" textAlign="left" imeMode="KOREAN" />
+                        </mx:Component>
+                    </h5:itemEditor>
+                </h5:AdvancedDataGridColumn>
+                <h5:AdvancedDataGridColumn labelCode="STA_YMD12" headerText="시작일자" dataField="sta_ymd" isRequired="true" width="100" format="date">
+                    <h5:itemEditor>
+                        <mx:Component>
+                            <h5:DateFieldItemRenderer isStartDate="true" startDateField="sta_ymd" endDateField="end_ymd" />
+                        </mx:Component>
+                    </h5:itemEditor>  
+                </h5:AdvancedDataGridColumn> 
+                <h5:AdvancedDataGridColumn labelCode="END_YMD14" headerText="종료일자" dataField="end_ymd" isRequired="true" width="100" format="date">
+                    <h5:itemEditor>
+                        <mx:Component>
+                            <h5:DateFieldItemRenderer isStartDate="false" startDateField="sta_ymd" endDateField="end_ymd" />
+                        </mx:Component>
+                    </h5:itemEditor>  
+                </h5:AdvancedDataGridColumn> 
+                <h5:AdvancedDataGridColumn labelCode="BIGO1" headerText="비고" dataField="note" editable="true" width="250" textAlign="left" imeMode="KOREAN">
+                    <h5:itemEditor>
+                        <mx:Component>
+                            <h5:TextInputRenderer maxBytes="50" textAlign="left" imeMode="KOREAN" />
+                        </mx:Component>
+                    </h5:itemEditor>
+                </h5:AdvancedDataGridColumn>
+            </h5:columns>
+        </h5:AdvancedDataGrid>
+    </h5:VBox>    
+</core:H5View>

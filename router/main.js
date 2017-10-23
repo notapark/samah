@@ -3,8 +3,8 @@ module.exports = function(app, fs, connection)
     app.get('/',function(req,res){
         var sess = req.session;
         var sql = '';
-        sql += 'select bbsno, subject, wname, date_format(regdate,"%Y년%m월%d일") as regdate from tb_bbs where type="main";';
-        sql += 'select bbsno, subject, wname, date_format(regdate,"%Y년%m월%d일") as regdate  from tb_bbs where type="etc"  ;';
+        sql += 'select bbsno, subject, wname, date_format(regdate,"%Y년%m월%d일") as regdate, case status when 0010 then "신규" when 0020 then "진행중" when 0030 then "완료" end status_nm , status from tb_bbs where type="main" order by bbsno desc;';
+        sql += 'select bbsno, subject, wname, date_format(regdate,"%Y년%m월%d일") as regdate, case status when 0010 then "신규" when 0020 then "진행중" when 0030 then "완료" end status_nm , status  from tb_bbs where type="etc"  order by bbsno desc;';
         var query = connection.query(sql,function(err,result){
           if (err) {
             console.error(err);
@@ -23,8 +23,8 @@ module.exports = function(app, fs, connection)
     app.get('/home',function(req,res){
         var sess = req.session;
         var sql = '';
-        sql += 'select bbsno, subject, wname, date_format(regdate,"%Y년%m월%d일") as regdate from tb_bbs where type="main";';
-        sql += 'select bbsno, subject, wname, date_format(regdate,"%Y년%m월%d일") as regdate  from tb_bbs where type="etc"  ;';
+        sql += 'select bbsno, subject, wname, date_format(regdate,"%Y년%m월%d일") as regdate, case status when 0010 then "신규" when 0020 then "진행중" when 0030 then "완료" end status_nm , status from tb_bbs where type="main" order by bbsno desc;';
+        sql += 'select bbsno, subject, wname, date_format(regdate,"%Y년%m월%d일") as regdate, case status when 0010 then "신규" when 0020 then "진행중" when 0030 then "완료" end status_nm , status  from tb_bbs where type="etc" order by bbsno desc ;';
         var query = connection.query(sql,function(err,result){
           if (err) {
             console.error(err);

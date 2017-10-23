@@ -1,0 +1,660 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!--
+/**
+ *  근태관리 -  기준조직등록
+ *
+ *  @author     기은정(eunjung.ki@vroi.net)
+ *  @version    14.07.2009
+ *  @since      Flex 3.3.0 build 4589
+ */  
+-->
+<core:H5View 
+    xmlns:mx="http://www.adobe.com/2006/mxml"   
+    xmlns:h5="http://www.h5.com/component"
+    xmlns:core="http://www.h5.com/core"
+    xmlns:biz="http://www.h5.com/biz"
+    xmlns:view="isc.dtm.view.*"
+    xmlns:comp="isc.dtm.components.*"
+    creationComplete="creationCompleteHandler()" 
+    width="100%" height="100%" styleName="panel1" 
+    >
+    
+    <mx:Script>
+    <![CDATA[
+    //-------------------------------------------------------------------------- 
+    //
+    //  Imports
+    // 
+    //--------------------------------------------------------------------------
+    import h5.ria.flex.component.utils.ClassUtil;
+    import h5.ria.flex.component.utils.StringUtil;
+    import h5.ria.flex.component.utils.AlertUtil;
+    import h5.ria.flex.component.asset.AssetImage;
+    import h5.ria.flex.core.dataset.DefaultDataSet;
+    import h5.ria.flex.core.dataset.DefaultDataSetList;
+    import h5.ria.flex.core.dataset.IRecord;
+    import h5.ria.flex.core.dataset.IDataSet;
+    import h5.ria.flex.core.dataset.IDataSetList; 
+    import h5.ria.flex.component.controls.Alert;
+    import h5.ria.flex.frame.events.H5PopupEvent;
+    import h5.ria.flex.frame.events.ServiceDelegatorEvent;
+    import h5.ria.flex.frame.mdi.containers.H5PopupWindow; 
+    
+    import isc.eup.component.ExcelUtil;
+    import isc.dtm.events.BizCodeCheckEvent; 
+    
+    import mx.collections.ArrayCollection;
+    import mx.events.ListEvent;
+    import mx.utils.ObjectUtil;
+     
+    //--------------------------------------------------------------------------
+    //
+    //  Variable
+    //  
+    //--------------------------------------------------------------------------
+    /**
+     *  @private
+     *  버튼 제어 
+     */
+    [Bindable]
+    private var modifyButtonEnabled:Boolean = false;
+    
+    /**   
+     * @private
+     * 조회조건 
+     */
+    private var searchValue:Object;
+    
+    /**   
+     * @private
+     * Tab 영역에 전달 할 조회조건 
+     */
+    [Bindable]
+    private var mainSearchValue:Object;
+    
+    /**
+     *  @private
+     * 
+     *  DataSet
+     */  
+    private var dsSearch:IDataSet;
+    
+    /**
+     *  @private
+     * 
+     *  DataGrid 선택 index 
+     */
+    private var selIndex:int = 0;
+    
+    /** 
+     * @private
+     * 
+     * 신규저장시 임의의 PK값
+     */ 
+    private var max_pk_id:int = 0;
+    
+    /**
+     *  @private
+     * 
+     *  DataGrid SelectedItem 
+     *  - Change 이벤트가 발생헀을 때, Row 가 변경되었는지, 확인하기 위한 Object
+     */
+    private var oldItem:Object;
+    
+    //--------------------------------------------------------------------------
+    //
+    //  initialize
+    //
+    //--------------------------------------------------------------------------
+    /**
+     *  @private
+     *  creationCompleteEventHandler
+     */ 
+    private function creationCompleteHandler():void
+    {
+        searchBiz.sendService(getSessionValue('user_id'), getSessionValue('emp_id'), this.getCompanyCode());
+        searchBiz.addEventListener(BizCodeCheckEvent.CHECK_CODE, bizCodeSearchEvnetHandler);
+        
+        // 하단의 Tab을 비활성화 시킵니다.
+        if (this.getCompanyCode() == 'BI0') {
+        	//tabNavigator.tabBar.visible = true;
+        	//tabNavigator.tabBar.includeInLayout = true;
+        	tabNavigator.getTabAt(tabNavigator.getChildIndex(lastTab as DisplayObject)).visible = true;
+        	tabNavigator.getTabAt(tabNavigator.getChildIndex(lastTab as DisplayObject)).includeInLayout = true;
+        	tabNavigator.getTabAt(tabNavigator.getChildIndex(lastTab as DisplayObject)).enabled = true;
+        } else {
+        	tabNavigator.getTabAt(tabNavigator.getChildIndex(lastTab as DisplayObject)).visible = false;
+        	tabNavigator.getTabAt(tabNavigator.getChildIndex(lastTab as DisplayObject)).includeInLayout = false;
+        	tabNavigator.getTabAt(tabNavigator.getChildIndex(lastTab as DisplayObject)).enabled = false;
+        }
+        setTabBox(false);
+        
+        //이마트 공통연장|달력 전체 복사
+        if(this.getCompanyCode() == "AE0"){
+        	btnCopyBiz2.visible = true;
+        }
+    } 
+    
+    //--------------------------------------------------------------------------
+    //
+    //  Override Methods
+    //
+    //--------------------------------------------------------------------------
+    /** 
+     *  @override
+     *  WebService호출
+     *  @param   actionType   호출종류
+     *  @param   value        인자값
+     */ 
+    override protected function doAction(actionType:String, value:Object):void
+    {  
+        // 서버측으로 전달되어질 데이터 구조
+        var sendDataList:IDataSetList = new DefaultDataSetList();
+        var ds_Condition:IDataSet;
+        var record:IRecord;
+        
+        switch (actionType)
+        {
+                
+            case "search":             // 기준사업장 조회
+                
+                ds_Condition = new DefaultDataSet("ds_C_Data");
+                ds_Condition.addColumn("base_ymd");
+                ds_Condition.addColumn("biz_cd");
+                ds_Condition.addColumn("company_cd");
+                
+                record = ds_Condition.newRecord();
+                record.setValueOf("base_ymd",value.base_ymd);   
+                record.setValueOf("biz_cd",value.biz_cd);   
+                record.setValueOf("company_cd",searchValue.company_cd);
+                   
+                sendDataList.addDataSet("ds_C_Data",ds_Condition);
+                this.executeTransaction("DTM_010_R01", sendDataList, actionType);
+                
+                break;
+                
+           case "new": // 신규
+            
+                record = dsSearch.newRecord();
+                record.setValueOf("biz_type_cd",'3');   
+                record.setValueOf("company_cd",searchValue.company_cd);
+                record.setValueOf("dtm_environment_id", "dtm_environment_id_" + max_pk_id.toString());
+                
+                max_pk_id ++;
+                
+                adg.updateVerticalScrollPostion();
+                
+                break;
+                
+            case "save": // 저장
+                
+                if (adg.validateAll())
+                {
+                    ds_Condition = new DefaultDataSet("ds_D_Data");
+                    dsSearch.sendOnlyDirtyRecord(true);
+                    sendDataList.addDataSet("ds_D_Data",dsSearch);
+                    
+                    this.executeTransaction("DTM_010_S02", sendDataList, actionType);
+                }
+                
+                break;
+            
+            case "excelDownload" : 
+            
+                if (ArrayCollection(adg.dataProvider).length > 0)
+                {
+                    ExcelUtil.excelDownload(adg,true,true,"excel");
+                }
+                else
+                {
+                    Alert.error(getTerms('ALERT_NO_EXCEL_DATA1'));
+                }
+                
+                break;     
+        }
+    }
+    
+    //--------------------------------------------------------------------------
+    //
+    //  ResultEvent
+    //
+    //--------------------------------------------------------------------------
+    /**
+     *  @private
+     *  평가정의 조회 Result result
+     */
+    override protected function result(event:ServiceDelegatorEvent):void
+    {
+        var result:IDataSetList = event.result as IDataSetList;
+        var eType:String = event.actionType;
+        
+        switch(eType)
+        {
+            case "search" :
+                
+                oldItem = new Object();
+                dsSearch = result.getDataSet("ds_D_Data");
+                adg.dataProvider = dsSearch.getRecords();
+                modifyButtonEnabled = true;
+                
+                if (!IDataSet(result.getDataSet("ds_D_Data")).getRecords().length
+                    || !IDataSet(result.getDataSet("ds_D_Data")))
+                {
+                    Alert.info(getTerms('ALERT_RETIEVE_NULL1'));
+                } 
+                else
+                {
+                    adg.selectedIndex = selIndex;
+                    adg.dispatchEvent(new ListEvent(ListEvent.CHANGE));
+                }
+                
+                //dtm_010_01.outerSearch();
+                
+                break;
+                
+            case "save" :
+            
+                Alert.info(getTerms('ALERT_SAVE_OK1'), saveCompleteHandler);
+                
+                break;
+        }
+        
+    } 
+    
+    //--------------------------------------------------------------------------
+    //
+    //  FaultEvent
+    //
+    //--------------------------------------------------------------------------
+    /**
+     *  @private
+     *  Fault
+     */
+    override protected function fault(event:ServiceDelegatorEvent):void
+    {
+        var eType:String = event.actionType;
+        var target:String; 
+        
+        switch(eType)
+        {
+            case "search" :
+                
+                target = "[조회]";
+                break;
+                
+            case "save" :
+            
+                target = "[저장]";
+                break;
+        }
+        
+        if (!StringUtil.emptyOrNull(event.result.faultCode))
+        {
+            Alert.error(target + getTerms(event.result.faultCode));
+        }
+        else
+        {
+            Alert.error(target + getTerms('ALERT_WORK_FAIL1'));
+        }
+        
+    }
+    
+    
+    //--------------------------------------------------------------------------
+    //
+    //  Event Handlers
+    //
+    //--------------------------------------------------------------------------
+    /**
+     *  @private
+     *  
+     *  사업장 검색팝업 종료
+     */
+    public function bizCodeSearchHandler(event:H5PopupEvent):void
+    {
+        switch (event.type)
+        {
+            // 찾기전 발생 이벤트
+            case H5PopupEvent.BEFORE_SEARCH:
+               break;
+               
+            // 찾은후 발생 이벤트
+            case H5PopupEvent.SEND_DATA:
+            
+                dsSearch.getRecordAt(adg.selectedIndex).setValueOf("biz_cd", event.record.getValueByName("biz_cd"));
+                dsSearch.getRecordAt(adg.selectedIndex).setValueOf("biz_nm", event.record.getValueByName("biz_nm"));
+                
+                dsSearch.getRecords().itemUpdated(dsSearch.getRecordAt(adg.selectedIndex))
+                
+                break;
+                
+            // 데이터 삭제후 발생 이벤트
+            case H5PopupEvent.INIT:
+            
+                dsSearch.getRecordAt(adg.selectedIndex).setValueOf("biz_cd", "");
+                dsSearch.getRecordAt(adg.selectedIndex).setValueOf("biz_nm", "");
+               
+                dsSearch.getRecords().itemUpdated(dsSearch.getRecordAt(adg.selectedIndex))
+                
+                break;
+        }
+        
+    }
+    
+    /**
+     *  @private
+     *  
+     *  AdvancedDataGrid Change Event
+     */
+    private function dataGridChangeHandler(event:ListEvent):void
+    {
+        if (oldItem == adg.selectedItem)
+        {
+            return;
+        }
+        oldItem = adg.selectedItem;
+        
+        if (oldItem.sStatus == "I")
+        {
+            setTabBox(false);
+        }
+        else 
+        {
+            setTabBox(true);
+            mainSearchValue = oldItem;
+            
+            dtm_010_01.searchTitle.text = mainSearchValue.biz_nm;
+            dtm_010_02.searchTitle.text = mainSearchValue.biz_nm;
+            dtm_010_03.searchTitle.text = mainSearchValue.biz_nm;
+            dtm_010_05.searchTitle.text = mainSearchValue.biz_nm;
+        
+        } 
+        
+    }  
+    
+    /**
+     *  @private
+     * 
+     *  BizCode 조회종료.
+     */
+    private function bizCodeSearchEvnetHandler(event:BizCodeCheckEvent):void
+    {
+        if (event.sendDataSet)
+        {
+            var bizAuth:String = event.sendDataSet.getRecordAt(0).getValueByName('biz_auth');
+            
+            // biz_auth 가 Y 인 경우에만 내용보기 컬럼을 표시합니다. 
+            if (bizAuth == "N")
+            {
+                btnCopyBiz.visible = false;
+                btnInsert.visible = false;
+            }   
+        }
+    }
+    
+    /**
+     *  @private
+     * 
+     *  조회 시점에 저장되지 않는 데이터가 존재할경우 AlertHandler
+     */
+    private function alertHandler(event:Object):void
+    {
+        if(event.detail == Alert.YES)
+        {
+            setTabBox(false);
+            setSearchValue();
+            doAction("search", searchValue);
+        }
+    }
+    
+    /**
+     *  @private
+     * 
+     *  저장확인  AlertHandler
+     */
+    private function saveAlertHandler(event:Object):void
+    {
+        if(event.detail == Alert.YES)
+        {
+            doAction("save", null);
+        }
+    }
+    
+    /**
+     *  @private
+     * 
+     *  저장완료 AlertHandler
+     */
+    private function saveCompleteHandler(event:Object):void
+    {
+        doAction("search", searchValue);
+    }
+    
+    //--------------------------------------------------------------------------
+    //
+    //  Methods
+    //
+    //--------------------------------------------------------------------------
+    /**
+     *  @private
+     * 
+     *  하단 Tab 영역을 활설/비활성화 및 데이터 비우기.
+     */
+    private function setTabBox(value:Boolean):void
+    {
+        dtm_010_01.outerBoxEnable(value);
+        dtm_010_02.outerBoxEnable(value);
+        dtm_010_03.outerBoxEnable(value);
+        dtm_010_05.outerBoxEnable(value);
+
+        dtm_010_01.outerReset(); 
+        dtm_010_02.outerReset(); 
+        dtm_010_03.outerReset();
+        dtm_010_05.outerReset();
+    }
+    
+    /** 
+     *  @private
+     * 
+     *  조회 전 수정데이터 확인.
+     */
+    private function beforeSearch():void
+    {
+        if (dsSearch)
+        {
+            if (dsSearch.checkDirty())
+            {
+                Alert.confirm('[기준사업장 등록내역]' + getTerms('CONFIRM_WORK_CONTINUE1'), alertHandler);
+                return;
+            }
+        }
+        if (dtm_010_01.dsSearch)
+        {    
+            if (dtm_010_01.dsSearch.checkDirty())
+            {
+                Alert.confirm('[달력내역]' + getTerms('CONFIRM_WORK_CONTINUE1'), alertHandler);
+                return;
+            }
+        }
+        if (dtm_010_03.dsSearch)
+        {
+            if (dtm_010_03.dsSearch.checkDirty())
+            {
+                Alert.confirm('[항목관리내역]' + getTerms('CONFIRM_WORK_CONTINUE1'), alertHandler);
+                return;
+            }
+        }
+        if (dtm_010_02.dataChanged)
+        {
+            Alert.confirm('[공통연장]' + getTerms('CONFIRM_WORK_CONTINUE1'), alertHandler);
+            return; 
+        }
+        setTabBox(false);
+        setSearchValue();
+        doAction("search", searchValue);            
+    }
+    
+    /**
+     *  @private
+     * 
+     *  저장 전  확인.
+     */
+    private function beforeSave():void
+    {
+        if (!dsSearch.checkDirty())
+        {
+            Alert.error(getTerms("ALERT_NO_SAVE_DATA1"));
+            return;
+        }
+                    
+        Alert.confirm(getTerms('CONFIRM_SAVE1'), saveAlertHandler);
+    }
+    
+    /**
+     *  @private
+     * 
+     *  조회조건 설정 
+     */
+    private function setSearchValue():void
+    {
+        searchValue = new Object();
+        searchValue.company_cd = getCompanyCode();
+        searchValue.base_ymd = base_ymd.startDate;
+        searchValue.biz_cd = searchBiz.bizCode;
+    }
+    
+    /**
+     *  @private
+     * 
+     *  기준복사 팝업생성.
+     */
+    private function createCopyPopup():void
+    {
+        var sendObject:Object = new Object();
+        sendObject.base_ymd     = base_ymd.startDate;
+        sendObject.company_cd   = this.getCompanyCode();
+        sendObject.biz_type_cd  = '3';
+        
+        var popup:H5PopupWindow = this.createPopup('기준복사', 'COPY_BASE', sendObject);
+    }
+    
+    /**
+     *  @private
+     * 
+     *  기준전체복사 팝업생성.
+     */
+    private function createAllCopyPopup():void
+    {
+        var sendObject:Object = new Object();
+        sendObject.base_ymd     = base_ymd.startDate;
+        sendObject.company_cd   = this.getCompanyCode();        
+        
+        var popup:H5PopupWindow = this.createPopup('기준전체복사', 'COPY_ALL_BASE', sendObject);
+    }
+    
+    ]]>  
+    </mx:Script>
+    
+    <h5:VBox width="100%" verticalGroupBoxMotion="true" styleName="Box1">
+        <!-- 조회영역 -->
+        <h5:HBox width="100%" styleName="SearchBox">
+            <h5:Grid width="100%" styleName="searchGrid"> 
+                <h5:GridRow width="100%" styleName="searchGridRow">
+                    <h5:GridItem styleName="searchGridItemLabel">
+                        <h5:Label text="기준일자" labelCode="BASE_YMD4" icon="requirement"/>
+                    </h5:GridItem>
+                    <h5:GridItem styleName="searchGridItem">
+                        <h5:Date2Date id="base_ymd" showEndDate="false"/>  
+                    </h5:GridItem>
+                    <h5:GridItem styleName="searchGridItemLabel">
+                        <h5:Label text="사업장" labelCode="BIZ_NM2" />
+                    </h5:GridItem>
+                    <h5:GridItem styleName="searchGridItem" >
+                        <comp:BizCodeComponent id="searchBiz" h5view="{this}" />
+                    </h5:GridItem>
+                    
+                    <h5:GridItem width="100%" styleName="searchButtonGridItem">
+                        <h5:Button label="조회" labelCode="BTN_RETRIEVE1" click="{beforeSearch()}" styleName="searchButton" />
+                    </h5:GridItem>
+                </h5:GridRow>
+            </h5:Grid> 
+        </h5:HBox>
+    </h5:VBox>
+       
+    <h5:ExtendedDividedBox id="DivNav" showButton="false" direction="vertical" 
+            styleName="ExtendedDividerBoxButtonH" liveDragging="true" width="100%" height="100%">
+        
+        <h5:VBox width="100%" height="45%" styleName="ContentsBox" >
+            <h5:VBox width="100%" height="100%" styleName="groupBox" >
+                <h5:HBox width="100%" styleName="titleBox1">
+                    <mx:Image source="{AssetImage.IMG_BUTTET1}"/>
+                    <h5:Label text="기준사업장등록" labelCode="BASE_BIZ_INPUT1"/>
+                    <mx:Spacer width="100%" />
+                    <h5:Button label="공통연장|달력복사" labelCode="CRIT_COPY2" id="btnCopyBiz2" click="createAllCopyPopup()" styleName="copyButton" visible="false"/>
+                    <h5:Button label="기준복사" labelCode="CRIT_COPY1" id="btnCopyBiz" click="createCopyPopup()" styleName="copyButton"/>
+                    <h5:Button label="입력" labelCode="BTN_INSERT1" id="btnInsert" click="{doAction('new',null)}" enabled="{modifyButtonEnabled}" styleName="inputButton"/>
+                    <h5:Button label="저장" labelCode="BTN_SAVE1" click="{beforeSave()}" enabled="{modifyButtonEnabled}" styleName="saveButton"/>
+                    <h5:Button label="다운로드" labelCode="BTN_EXCELDOWNLOAD1" click="{doAction('excelDownload','adg')}" enabled="{modifyButtonEnabled}" styleName="xlsButton" />
+                </h5:HBox>
+                  
+                <h5:AdvancedDataGrid id="adg" width="100%" height="100%" editable="true"  
+                    change="dataGridChangeHandler(event)" styleName="DataGridTypeA">
+                    <h5:columns> 
+                        <h5:AdvancedDataGridColumn labelCode="BIZ_CD1" headerText="사업장코드" dataField="biz_cd" isRequired="true">
+                            <h5:itemEditor>
+                                <mx:Component> 
+                                    <biz:SearchBizCodeDG h5View="{outerDocument}" bindingColumn="biz_cd" scBindingColumn="biz_cd"
+                                        receiveDataF="{outerDocument.bizCodeSearchHandler}" initiateF="{outerDocument.bizCodeSearchHandler}"/>
+                                </mx:Component>
+                            </h5:itemEditor>
+                        </h5:AdvancedDataGridColumn>
+                        <h5:AdvancedDataGridColumn labelCode="BIZ_NM1" headerText="사업장명" dataField="biz_nm" isRequired="{{required:true, editable:false}}" textAlign="left"/>
+                        <h5:AdvancedDataGridColumn labelCode="STA_YMD13" headerText="시작일자" dataField="sta_ymd" isRequired="true" width="100" format="date">
+                            <h5:itemEditor>
+                                <mx:Component>
+                                    <h5:DateFieldItemRenderer isStartDate="true" startDateField="sta_ymd" endDateField="end_ymd" defaultDateType="today" />
+                                </mx:Component>
+                            </h5:itemEditor>  
+                        </h5:AdvancedDataGridColumn> 
+                        <h5:AdvancedDataGridColumn labelCode="END_YMD15" headerText="종료일자" dataField="end_ymd" isRequired="true" width="100" format="date">
+                            <h5:itemEditor>
+                                <mx:Component>
+                                    <h5:DateFieldItemRenderer isStartDate="false" startDateField="sta_ymd" endDateField="end_ymd" defaultDateType="endDay" />
+                                </mx:Component>
+                            </h5:itemEditor>  
+                        </h5:AdvancedDataGridColumn> 
+                        <h5:AdvancedDataGridColumn labelCode="BIGO1" headerText="비고" dataField="note" editable="true" textAlign="left">
+                            <h5:itemEditor>
+                                <mx:Component>
+                                    <h5:TextInputRenderer maxBytes="50" textAlign="left" imeMode="KOREAN" />
+                                </mx:Component>
+                            </h5:itemEditor>
+                        </h5:AdvancedDataGridColumn>
+                    </h5:columns>
+                </h5:AdvancedDataGrid>
+            </h5:VBox>
+        </h5:VBox>    
+           
+        <!-- Tab 영역 -->
+        <h5:TabNavigator id="tabNavigator" width="100%" height="100%" creationPolicy="all" >
+            <!-- 항목관리 -->
+            <h5:VBox label="항목관리" styleName="tabBox">
+                <view:dtm_010_03p id="dtm_010_03" searchValue="{mainSearchValue}" />
+            </h5:VBox> 
+            <!-- 공통연장 -->  
+            <h5:VBox label="공통연장" styleName="tabBox">  
+                <view:dtm_010_02p id="dtm_010_02" searchValue="{mainSearchValue}" />
+            </h5:VBox>
+            <!-- 달력 -->
+            <h5:VBox label="달력" styleName="tabBox">
+                <view:dtm_010_01p id="dtm_010_01" searchValue="{mainSearchValue}" />
+            </h5:VBox>  
+            <!-- 달력 -->
+            <h5:VBox label="근무시간" id="lastTab" styleName="tabBox" >
+                <view:dtm_010_05p id="dtm_010_05" searchValue="{mainSearchValue}" />
+            </h5:VBox>  
+        </h5:TabNavigator>
+         
+    </h5:ExtendedDividedBox>  
+      
+</core:H5View>

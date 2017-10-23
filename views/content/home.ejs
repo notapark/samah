@@ -1,27 +1,27 @@
 <div class="menu" id="home" >
   <div class="col-sm-6 text-left">
-    <h1>부과내역서인쇄의뢰</h1>
+    <font size="5">부과내역서인쇄의뢰 | </font> <a href="/bbs/main/list">>더보기</a>
     <div class="table-striped" >
       <table class="table table-bordered">
         <thead>
           <tr>
-            <td>번호</td>
-            <td>제목</td>
-            <td>작성자</td>
-            <td>작성일</td>
-            <td>상태</td>
+            <td width="50" align="center">번호</td>
+            <td align="center">제목</td>
+            <td width="80" align="center">작성자</td>
+            <td width="140" align="center">작성일</td>
+            <td width="50" align="center">상태</td>
           </tr>
         </thead>
-        <tbody>
+        <tbody id="maintbody">
           <%
           rsMain.forEach(function(item, index){
           %>
           <tr id=<%=item.bbsno%>>
             <td><%=item.bbsno%></td>
             <td><%=item.subject%></td>
-            <td><%=item.wname%></td>
-            <td><%=item.regdate%></td>
-            <td><%=item.status%></td>
+            <td align="center"><%=item.wname%></td>
+            <td align="center"><%=item.regdate%></td>
+            <td class="status-<%=item.status%>" align="center"><%=item.status_nm%></td>
           </tr>
           <%
           });
@@ -31,28 +31,28 @@
     </div>
   </div>
   <div class="col-sm-6 text-left">
-    <h1>인쇄의뢰</h1>
+    <font size="5">인쇄의뢰 |  </font> <a href="/bbs/etc/list"> >더보기</a>
     <div class="table-striped" >
       <table class="table table-bordered">
         <thead>
           <tr>
-            <td>번호</td>
-            <td>제목</td>
-            <td>작성자</td>
-            <td>작성일</td>
-            <td>상태</td>
+            <td width="50" align="center">번호</td>
+            <td align="center">제목</td>
+            <td width="80" align="center">작성자</td>
+            <td width="140" align="center">작성일</td>
+            <td width="50" align="center">상태</td>
           </tr>
         </thead>
-        <tbody>
+        <tbody id="etctbody">
           <%
           rsEtc.forEach(function(item, index){
           %>
           <tr id=<%=item.bbsno%>>
             <td><%=item.bbsno%></td>
             <td><%=item.subject%></td>
-            <td><%=item.wname%></td>
-            <td><%=item.regdate%></td>
-            <td><%=item.status%></td>
+            <td align="center"><%=item.wname%></td>
+            <td align="center"><%=item.regdate%></td>
+            <td class="status-<%=item.status%>" align="center"><%=item.status_nm%></td>
           </tr>
           <%
           });
@@ -61,12 +61,40 @@
       </table>
     </div>
   </div>
+  <div class="col-sm-12 text-left">
+    작업샘플
+  </div>
 </div>
+<form id="mainviewform" action="/bbs/main/view" method="post">
+  <input type="hidden" id="bbsno" name="bbsno" >
+</form>
+<form id="etcviewform" action="/bbs/etc/view" method="post">
+  <input type="hidden" id="bbsno" name="bbsno" >
+</form>
 
 <script>
 
   $(document).ready(function(){
     $('#home').attr('class','active');
+    $('tbody tr').on({
+      mouseenter: function(){
+        $(this).attr('class','active');
+      },
+      mouseleave: function(){
+        $(this).attr('class','');
+      }
+    })
+  });
+
+  $("#maintbody tr").click(function(){
+    document.location = "/bbs/main/view/"+ this.id;
+    // $("#bbsno").attr('value',this.id);
+    // $("#mainviewform").submit();
+  });
+
+  $("#etctbody tr").click(function(){
+    $("#bbsno").attr('value',this.id);
+    $("#etcviewform").submit();
   });
 
 </script>

@@ -1,0 +1,564 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+/**
+ *  근태관리 - 항목관리 TabNavigator
+ *
+ *  @author     기은정(eunjung.ki@vroi.net)
+ *  @version    20.07.2009
+ *  @since      Flex 3.3.0 build 4589
+ */
+-->
+<core:H5View 
+    xmlns:mx="http://www.adobe.com/2006/mxml" 
+    xmlns:h5="http://www.h5.com/component"
+    xmlns:core="http://www.h5.com/core"
+    xmlns:components="isc.dtm.components.*" 
+    xmlns:ctrl="isc.dtm.controls.*"
+    creationComplete="creationCompleteHandler()"
+    width="500" height="300" styleName="panel1" 
+    >
+    
+    <mx:Script>
+    <![CDATA[
+    //--------------------------------------------------------------------------
+    //
+    //  Imports
+    // 
+    //--------------------------------------------------------------------------
+    import h5.ria.flex.component.events.DefinedCalendarEvent;
+    import h5.ria.flex.component.controls.Alert;
+    import h5.ria.flex.component.vo.ICodeKindVO;
+    import h5.ria.flex.component.utils.AlertUtil;
+    import h5.ria.flex.component.utils.ClassUtil;
+    import h5.ria.flex.component.utils.DateUtil;
+    import h5.ria.flex.component.utils.StringUtil;
+    import h5.ria.flex.component.asset.AssetImage;
+    import h5.ria.flex.core.dataset.DefaultDataSet;
+    import h5.ria.flex.core.dataset.IRecord;
+    import h5.ria.flex.core.dataset.IDataSet;
+    import h5.ria.flex.core.dataset.DefaultDataSetList;
+    import h5.ria.flex.core.dataset.IDataSetList;
+    import h5.ria.flex.frame.events.ServiceDelegatorEvent;
+    import h5.ria.flex.component.utils.DateUtil;
+    
+    import mx.messaging.SubscriptionInfo;
+    import mx.collections.ArrayCollection;
+    import mx.utils.ObjectUtil;    
+    
+    //--------------------------------------------------------------------------
+    //
+    //  Variable
+    //
+    //--------------------------------------------------------------------------
+    
+    /** 
+     * @private
+     * 
+     * 조회조건
+     */          
+    [Bindable]
+    private var _searchValue:Object;              
+    public function set searchValue(value:Object):void
+    {
+        _searchValue = value;
+    }
+    
+    /** 
+     * @private
+     * 
+     * main DataSet
+     */
+    private var dsSearch:IDataSet;
+    
+    /** 
+     * @private
+     * 
+     * 조회일자
+     */
+    private var baseDate:String;
+    
+    /** 
+     * @private
+     * 
+     * 신규저장시 임의의 PK값
+     */ 
+    private var max_pk_id:int = 0;
+    
+    
+    /**
+     *  @private
+     *  변경 버튼 제어 
+     */
+    [Bindable]
+    private var modifyButtonEnabled:Boolean = false;
+    
+    /** 
+     * @private
+     * 
+     * 수정여부
+     */ 
+    public var dataChanged:Boolean = false;
+    
+    //--------------------------------------------------------------------------
+    //
+    //  initialize
+    //
+    //--------------------------------------------------------------------------
+    /**
+     *  @private
+     *  creationCompleteEventHandler
+     */
+    private function creationCompleteHandler():void
+    { 
+        var toDay:Date = new Date();
+        var month:String = toDay.getMonth()+1 < 10 ? ("0" + String(toDay.getMonth()+1)) : String(toDay.getMonth()+1);
+        
+        base_ym.text = String(toDay.getFullYear()) + month;
+        baseDate = String(toDay.getFullYear()) + month;
+        
+        //fixedMontcalendar.selectedDate = DateUtil.stringToDate(baseDate.substr(0,4) +  String( int(baseDate.substr(4,2))+1 ) + '01');
+        fixedMontcalendar.selectedDate = DateUtil.stringToDate(baseDate + "01");
+        definedCalendar.setYearAndMonth(int(baseDate.substr(0,4)), int(baseDate.substr(4,2))-1);
+        
+        if (this.getCompanyCode() == 'WC0') 
+        {
+            ot_sta_time.text = '0.5';
+            ot_sta_time.enabled = false;
+            ot_num.text = '0';
+        }
+    }
+    
+    
+    //--------------------------------------------------------------------------
+    //
+    //  Override Methods
+    //
+    //--------------------------------------------------------------------------
+    /**
+     *  @override
+     *  WebService호출
+     *  @param   actionType   호출종류
+     *  @param   value        인자값
+     */ 
+    override protected function doAction(actionType:String, value:Object):void
+    {  
+        // 서버측으로 전달되어질 데이터 구조
+        var sendDataList:IDataSetList = new DefaultDataSetList();
+        var ds_Condition:IDataSet;
+        var record:IRecord;
+         
+        switch (actionType)
+        {
+            case "search": // 조회
+            
+                ds_Condition = new DefaultDataSet("ds_C_Data");
+                ds_Condition.addColumn("company_cd");
+                ds_Condition.addColumn("dtm_environment_id");           
+                ds_Condition.addColumn("ym");           
+                
+                record = ds_Condition.newRecord();
+                record.setValueOf("company_cd",this.getCompanyCode());   
+                record.setValueOf("dtm_environment_id",_searchValue.dtm_environment_id);   
+                record.setValueOf("ym",value.toString());   
+                
+                sendDataList.addDataSet("ds_C_Data",ds_Condition);
+                this.executeTransaction("DTM_010_R07", sendDataList, actionType);
+                
+                break;
+            
+            case "save":            
+            
+                var calSaveArr:Array = value as Array;
+                
+                ds_Condition = new DefaultDataSet("ds_D_Data");
+                ds_Condition.addColumn("dtm_environment_id");
+                ds_Condition.addColumn("dtm_biz_ot_id");
+                ds_Condition.addColumn("ot_ymd");
+                ds_Condition.addColumn("ot_sta_time");
+                ds_Condition.addColumn("ot_num");
+                
+                for (var i:int = 0; i < calSaveArr.length; i++)
+                {
+                    // 개발이나 연장 둘중 한쪽의 데이터라도 있으면 데이터셋에 추가.
+                    if (!StringUtil.emptyOrNull(calSaveArr[i].otField2) || !StringUtil.emptyOrNull(calSaveArr[i].otField3))
+                    {
+                        record = ds_Condition.newRecord();
+                        record.setValueOf("dtm_environment_id", _searchValue.dtm_environment_id);
+                        record.setValueOf("ot_ymd", calSaveArr[i].ymd);
+                        record.setValueOf("ot_sta_time", calSaveArr[i].otField2);
+                        record.setValueOf("ot_num", calSaveArr[i].otField3);
+                        
+                        // PK 값이 존재하면 update (기존에 데이터가 있던 셀)
+                        if (!StringUtil.emptyOrNull(calSaveArr[i].otPK))
+                        {
+                            record.setValueOf("sStatus", 'U');
+                            record.setValueOf("dtm_biz_ot_id", calSaveArr[i].otPK );
+                        }
+                        else
+                        {
+                            record.setValueOf("sStatus", 'I');
+                            record.setValueOf("dtm_biz_ot_id", 'dtm_biz_ot_id_'+ i);
+                        }
+                    }
+                }
+                
+                sendDataList.addDataSet("ds_D_Data",ds_Condition);
+                this.executeTransaction("DTM_010_S08", sendDataList, actionType);
+                
+                break;
+        
+        }
+    }
+    
+    
+    
+    //--------------------------------------------------------------------------
+    //
+    //  ResultEvent
+    //
+    //--------------------------------------------------------------------------
+    /**
+     *  @private
+     *  평가정의 조회 Result result
+     */
+    override protected function result(event:ServiceDelegatorEvent):void
+    {
+        var result:IDataSetList = event.result as IDataSetList;
+        var eType:String = event.actionType;
+        
+        switch(eType)
+        {
+            case "search" :     // 조회 후 처리
+                
+                modifyButtonEnabled = true;
+                //dsSearch = result.getDataSet("ds_D_Data");
+                
+                if (!IDataSet(result.getDataSet("ds_D_Data")).getRecords().length
+                    || !IDataSet(result.getDataSet("ds_D_Data")))
+                {
+                    definedCalendar.clearLabels();
+                    Alert.info("[공통연장] " + getTerms('ALERT_RETIEVE_NULL1'));
+                    return;
+                }  
+                
+                //trace('++++++result : ', result.getDataSet("ds_D_Data"));
+                 
+                var calendarDate:ArrayCollection = result.getDataSet("ds_D_Data").getRecords();
+                definedCalendar.anniversarys = calendarDate;
+                
+                break; 
+                
+            case "save" :  
+            
+                dataChanged = false;   
+                Alert.info(getTerms('ALERT_SAVE_OK1'), saveCompleteHandler);
+        
+                break; 
+                
+        }
+        
+    }
+    
+    //--------------------------------------------------------------------------
+    //
+    //  FaultEvent
+    //
+    //--------------------------------------------------------------------------
+    /**
+     *  @private
+     *  Fault
+     */
+    override protected function fault(event:ServiceDelegatorEvent):void
+    {
+        var eType:String = event.actionType;
+        var target:String; 
+        
+        switch(eType)
+        {
+            case "search" :
+                target = "[조회]";
+                break;
+                
+            case "save" :
+                target = "[저장]";
+                break;
+        }
+        
+        if (!StringUtil.emptyOrNull(event.result.faultCode))
+        {
+            Alert.error(target + getTerms(event.result.faultCode));
+        }
+        else
+        {
+            Alert.error(target + getTerms('ALERT_WORK_FAIL1'));
+        }
+    }
+    
+    //--------------------------------------------------------------------------
+    //
+    //  Event Handlers
+    //
+    //--------------------------------------------------------------------------
+    /**
+     *  @private
+     * 
+     *  조회 시점에 저장되지 않는 데이터가 존재할경우 AlertHandler
+     */
+    private function alertHandler(event:Object):void
+    {
+        // YES
+        if(event.detail == Alert.YES)
+        {
+            dataChanged = false;
+            changeYearAndMonth(base_ym.text);
+            doAction("search", baseDate); 
+        }
+    }
+    
+    /**
+     *  @private
+     * 
+     *  저장완료 AlertHandler
+     */
+    private function saveCompleteHandler(event:Object):void
+    {
+        changeYearAndMonth(base_ym.text);
+        doAction("search", baseDate);
+    }
+   
+    /**
+     *  @private
+     * 
+     *  저장
+     */
+    private function calendarSaveCompleteHandler(event:DefinedCalendarEvent):void
+    {
+        if (event.data)
+        {
+            doAction("save", event.data);
+        }
+        
+    }
+    
+    //--------------------------------------------------------------------------
+    //
+    //  Methods
+    //
+    //--------------------------------------------------------------------------
+    /**
+     *  @private
+     *  공통연장변경
+     */
+    private function updataDataSet():void
+    {
+        dataChanged = true;
+        
+        if (StringUtil.emptyOrNull(ot_sta_time.text))
+        {
+            ot_sta_time.text = '0';
+        }
+        
+        if (StringUtil.emptyOrNull(ot_num.text))
+        {
+            ot_num.text = '0';
+        }
+        
+        fixedMontcalendar.selectedRanges.length != 1 ? setTime():setRangeTime();
+    }
+    
+    private function setTime():void
+    {
+        var date:Number;
+        var editDate:Object;
+        
+        for (var i:int = 0; i<fixedMontcalendar.selectedRanges.length; i++)
+        {
+            date = fixedMontcalendar.selectedRanges[i].rangeEnd.getDate();
+            var day:String = date<10? '0'+String(date) : String(date);
+            editDate = new Object();
+            editDate = setCalendatObject(day, ot_sta_time.text, ot_num.text);
+            //editDate = setCalendatObject(DateUtil.convertToDateString(fixedMontcalendar.selectedRanges[i].rangeEnd), ot_sta_time.text, ot_num.text);
+            
+            definedCalendar.setTime(date, editDate);
+        }
+    }
+    
+    private function setRangeTime():void
+    {
+        var rangeStart:int = fixedMontcalendar.selectedRanges[0].rangeStart.getDate();
+        var rangeEnd:int = fixedMontcalendar.selectedRanges[0].rangeEnd.getDate();
+        var editDate:Object;
+        
+        
+        for (var i:int = rangeStart; i<=rangeEnd; i++)
+        {
+            var day:String = i<10? '0'+String(i) : String(i);
+            editDate = new Object();
+            editDate = setCalendatObject(day, ot_sta_time.text, ot_num.text);
+
+            definedCalendar.setTime(i, editDate);
+        
+        }
+            
+       /* 
+        if (rangeStart == rangeEnd)
+        {
+            //editDate = setCalendatObject(DateUtil.convertToDateString(fixedMontcalendar.selectedRanges[0].rangeEnd), ot_sta_time.text, ot_num.text);
+            var day:String = rangeEnd<10? '0'+String(rangeEnd): String(rangeEnd);
+            editDate = setCalendatObject(day, ot_sta_time.text, ot_num.text);
+            definedCalendar.setTime(rangeEnd, editDate);
+            
+            return;
+        } 
+        else 
+        {
+            for (var i:int = rangeStart; i<=rangeEnd; i++)
+            {
+                var day:String = i<10? '0'+String(i) : String(i);
+                editDate = new Object();
+                editDate = setCalendatObject(day, ot_sta_time.text, ot_num.text);
+
+                definedCalendar.setTime(i, editDate);
+            }
+            
+            return;
+        }
+        */
+    }
+    
+    private function setCalendatObject(day:String, time:String, num:String):Object
+    {
+        var obj:Object = new Object();
+        
+        obj.dtm_biz_ot_id = '';
+        obj.ot_type = '[정리]';
+        obj.ot_nm = '[연장]';
+        
+        obj.ot_ymd = baseDate + day;
+        obj.ot_sta_time = time;
+        obj.ot_num = num;
+        
+        return obj;
+    } 
+    
+    /**
+     *  @private
+     *  달력변경
+     */
+    private function changeYearAndMonth(value:String):void
+    {
+        //definedCalendar.clearLabels();
+           
+        //baseDate = base_ym.text;
+        
+        baseDate = value;
+        
+        var yy:int = int(value.substr(0,4));
+        var mm:int = int(value.substr(4,2));
+        
+        fixedMontcalendar.selectedDate = DateUtil.stringToDate(value + "01");
+        definedCalendar.setYearAndMonth(yy, mm-1);
+    }
+    
+    /**
+     *  @private
+     * 
+     *  조회 전 수정데이터 확인.
+     */
+    private function beforeSearch():void
+    {
+        if (dataChanged)
+        {
+            Alert.confirm('[공통연장관리]' + getTerms('CONFIRM_WORK_CONTINUE1'), alertHandler);
+            return;
+        }
+        
+        //changeYearAndMonth();
+        changeYearAndMonth(base_ym.text);    
+        doAction("search", baseDate);    
+        
+    }
+    
+    /**
+     *  @private
+     *  초기화 (외부에서 접근가능)
+     */
+    public function outerReset():void
+    {
+        definedCalendar.clearLabels();
+        modifyButtonEnabled = false;
+        ot_sta_time.text = (this.getCompanyCode()=='WC0')?"0.5":"";
+        ot_num.text = (this.getCompanyCode()=='WC0')?"0":"";
+        
+    }
+    
+     /**
+     *  @private
+     *  박스 활설/비활성화 (외부에서 접근가능)
+     */
+    public function outerBoxEnable(value:Boolean):void
+    {
+        this.enabled = value;
+    }
+       
+    ]]>
+    </mx:Script>
+    
+        
+    <!-- 조회영역 -->
+    <h5:VBox width="100%" verticalGroupBoxMotion="true" styleName="Box1">
+        <h5:HBox width="100%" styleName="SearchBox">
+            <h5:Grid width="100%" styleName="searchGrid">
+                <h5:GridRow width="100%" styleName="searchGridRow">
+                    <h5:GridItem styleName="searchGridItemLabel">
+                        <h5:Label text="년월" labelCode="NHS_YM1" icon="requirement"/>
+                    </h5:GridItem>
+                    <h5:GridItem styleName="searchGridItem">
+                        <h5:YearMonthDateField id="base_ym" editable="true" enter="beforeSearch()"/>
+                    </h5:GridItem>
+                    <h5:GridItem width="100%" styleName="searchButtonGridItem">
+                        <h5:Button label="조회" labelCode="BTN_RETRIEVE1" click="{beforeSearch()}" styleName="searchButton" />
+                    </h5:GridItem>
+                </h5:GridRow>
+            </h5:Grid>
+        </h5:HBox>
+    </h5:VBox>
+    
+    <h5:VBox width="100%" height="530" styleName="groupBox" >
+        <h5:HBox width="100%" styleName="titleBox1">
+            <mx:Image source="{AssetImage.IMG_BUTTET1}"/>
+            <h5:Label text="공통연장등록 " labelCode="COMMON_OT_REG1"/>
+            <h5:Spacer width="10" />
+            <h5:Label id="searchTitle" color="black"/>
+            <h5:Spacer width="100%" />
+            <h5:Button label="저장" labelCode="BTN_SAVE1" click="definedCalendar.save()" enabled="{modifyButtonEnabled}" styleName="saveButton"/>
+        </h5:HBox>
+         
+        <h5:HBox width="100%" height="100%" horizontalGap="5">
+            <h5:VBox width="215" styleName="groupBox2" paddingTop="12">
+                <h5:FixedMonthCalendar id="fixedMontcalendar" allowMultipleSelection="true" enabled="{modifyButtonEnabled}" />
+                <h5:HBox width="100%" horizontalGap="3">
+                    <h5:Label text="정리시간" labelCode="END_TM1" width="85"/>
+                    <h5:TextInput id="ot_sta_time" width="45" maxBytes="5" restrict="[.\0-9]" editable="{modifyButtonEnabled}" styleName="textInputDefaultNumber"/>
+                </h5:HBox>
+                <h5:HBox width="100%" horizontalGap="3">
+                    <h5:Label text="공통연장시간" labelCode="OT_TM1" width="85"/>
+                    <h5:TextInput id="ot_num" width="45" maxBytes="5" restrict="[.\0-9]" editable="{modifyButtonEnabled}" styleName="textInputDefaultNumber"/>
+                    <h5:Spacer width="100%" />
+                    <h5:Button label="변경" height="20" click="updataDataSet()" enabled="{modifyButtonEnabled}" styleName="subButton"/>
+                </h5:HBox> 
+            </h5:VBox> 
+            
+            <!-- 달력 -->
+            <h5:VBox width="100%" height="100%" minWidth="682" styleName="groupBox4" >
+                <components:OTCalendar
+                    id="definedCalendar" width="100%" height="100%" backgroundColor="0xffffff"
+                    otDate="ot_ymd" otPK="dtm_biz_ot_id" otHoliday="note" 
+                    otField2="ot_sta_time" otFieldName2="ot_type" 
+                    otField3="ot_num"  otFieldName3="ot_nm"
+                    saveComplete="calendarSaveCompleteHandler(event)" />
+            </h5:VBox>
+        </h5:HBox>    
+    </h5:VBox>
+    
+</core:H5View>
